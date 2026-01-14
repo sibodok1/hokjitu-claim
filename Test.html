@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Form Pengajuan Klaim Member</title>
+
+  <!-- SheetJS (Excel Export) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --text:#e9ecff; --muted:#aab2ff;
+      --line:rgba(255,255,255,.12); --accent:#7c5cff;
+      --ok:#2dd4bf; --danger:#ff4d6d; --warn:#fbbf24;
+
+      /* PC target zoom 120% */
+      --ui-scale: 1.20;
+      --base-font: 15px;
+      --cell-pad-y: 14px;
+      --cell-pad-x: 12px;
+      --input-pad-y: 12px;
+      --input-pad-x: 12px;
+      --radius: 14px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 15% 10%, rgba(124,92,255,.25), transparent 60%),
+                  radial-gradient(900px 500px at 90% 30%, rgba(45,212,191,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      padding: 20px 18px 70px;
+      font-size: var(--base-font);
+    }
+
+    .wrap{ width:100%; max-width:none; margin:0 auto; }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom: 12px;
+    }
+    h1{ margin:0; font-size: 22px; letter-spacing:.2px; }
+    .sub{ margin: 6px 0 0; color:var(--muted); font-size: 13px; line-height: 1.5; }
+
+    /* Zoom panel */
+    .zoomBox{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 10px;
+    }
+    .zoomLabel{ color: var(--muted); font-size: 12px; }
+    .zoomVal{ font-weight: 800; font-size: 12px; letter-spacing:.4px; }
+    .zbtn{
+      border:none; background: rgba(255,255,255,.10); color: var(--text);
+      padding: 8px 10px; border-radius: 10px; cursor:pointer; font-weight: 800; line-height: 1;
+    }
+    .zbtn:active{ transform: translateY(1px); }
+
+    .scaled{
+      transform: scale(var(--ui-scale));
+      transform-origin: top left;
+      width: calc(100% / var(--ui-scale));
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 70%), var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow:0 14px 40px rgba(0,0,0,.35);
+      margin-bottom: 14px;
+    }
+
+    .sectionTitle{
+      display:flex; align-items:baseline; justify-content:space-between;
+      gap:12px; margin-bottom: 12px;
+    }
+    .sectionTitle h2{ margin:0; font-size: 16px; }
+    .mini{ font-size: 12px; color: var(--muted); }
+
+    .tools{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; justify-content:space-between; margin-bottom: 12px;
+    }
+    .tabs{ display:flex; gap:10px; flex-wrap:wrap; }
+    .tab{
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .tab.active{
+      border-color: rgba(124,92,255,.75);
+      box-shadow: 0 0 0 3px rgba(124,92,255,.14);
+    }
+    .search{ flex:1; min-width: 320px; }
+    .search input{ width:100%; }
+
+    input,select{
+      width:100%;
+      min-width:0 !important;
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: var(--input-pad-y) var(--input-pad-x);
+      border-radius: 12px;
+      outline:none;
+      font-size: 14px;
+    }
+    input::placeholder{ color: rgba(233,236,255,.55); }
+    input:focus,select:focus{
+      border-color: rgba(124,92,255,.75);
+      box-shadow: 0 0 0 3px rgba(124,92,255,.18);
+    }
+    input[disabled], select[disabled]{ opacity: .65; cursor: not-allowed; }
+
+    .btn{
+      border:none; color:white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 850;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      font-size: 13px;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ background: var(--accent); }
+    .btn.secondary{ background: transparent; border:1px solid var(--line); color: var(--text); }
+    .btn.approve{ background: rgba(45,212,191,.95); color:#061018; }
+    .btn.reject{ background: rgba(255,77,109,.92); color:#19060a; }
+    .btn.danger{ background: rgba(255,77,109,.92); }
+    .btn.small{ padding: 10px 14px; font-size: 13px; border-radius: 12px; }
+
+    .btn.ts{
+      background: rgba(251,191,36,.16);
+      border: 1px solid rgba(251,191,36,.55);
+      color: #fff;
+    }
+    .btn.ts.on{
+      background: rgba(251,191,36,.28);
+      border-color: rgba(251,191,36,.85);
+      box-shadow: 0 0 0 3px rgba(251,191,36,.10);
+    }
+    .btn.ts[disabled]{ opacity:.45; cursor:not-allowed; }
+
+    .msg{ margin-top: 12px; font-size: 14px; font-weight: 700; }
+    .msg.ok{ color: var(--ok); }
+    .msg.err{ color: var(--danger); }
+
+    .tableWrap{
+      width:100%;
+      overflow-x:hidden;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.12);
+    }
+    table{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+    thead th{
+      background: rgba(18,26,51,.96);
+      color: var(--muted);
+      font-size: 13px;
+      text-align:left;
+      padding: var(--cell-pad-y) var(--cell-pad-x);
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    tbody td{
+      padding: var(--cell-pad-y) var(--cell-pad-x);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      vertical-align: middle;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+    tbody tr:hover td{ background: rgba(255,255,255,.05); }
+
+    .wrapText{ white-space: normal !important; line-height: 1.25; }
+    .num{ text-align:right; font-variant-numeric: tabular-nums; }
+    .center{ text-align:center; }
+
+    .badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
+      font-weight: 900;
+    }
+    .badge.waiting{ border-color: rgba(251,191,36,.6); background: rgba(251,191,36,.14); }
+    .badge.approved{ border-color: rgba(45,212,191,.6); background: rgba(45,212,191,.12); }
+    .badge.rejected{ border-color: rgba(255,77,109,.6); background: rgba(255,77,109,.12); }
+    .badge.ts{
+      border-color: rgba(251,191,36,.85);
+      background: rgba(251,191,36,.18);
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 1000;
+      margin-left: 8px;
+    }
+
+    .empty{ padding: 18px; color: var(--muted); font-size: 14px; }
+    .aksiRow{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .hint{ margin-top: 10px; color: var(--muted); font-size: 12px; }
+
+    .formTopTools{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .claimDateBox{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .claimDateVal{
+      color: var(--text);
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.6);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 9999;
+    }
+    .modal{
+      width: min(900px, 96vw);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 70%), var(--card);
+      border:1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.6);
+      padding: 16px;
+    }
+    .modalHead{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px; margin-bottom: 12px;
+    }
+    .modalHead h3{ margin:0; font-size: 16px; }
+    .modalGrid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 10px;
+    }
+    .fg{ grid-column: span 6; }
+    .fg.full{ grid-column: span 12; }
+    .lbl{ font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+    .modalFoot{
+      display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 900px){
+      :root{ --ui-scale: 1.10; }
+      .search{ min-width: 220px; }
+      h1{ font-size: 20px; }
+      .fg{ grid-column: span 12; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Form Pengajuan Klaim Member</h1>
+      <p class="sub">
+        Aturan: 1 hari 1x per jenis spin / user • Max klaim harian gabungan BUY+FREE = <b>400,000</b>
+        <br>TS (Tanggal Semalam) hanya bisa dipakai pada jam <b>00:01 – 02:00</b>.
+        <br>PERIODE unik global untuk data <b>WAITING/APPROVED</b> (kalau <b>REJECTED</b> → PERIODE boleh dipakai lagi).
+      </p>
+    </div>
+
+    <div class="zoomBox" aria-label="Zoom UI">
+      <span class="zoomLabel">Zoom UI</span>
+      <button class="zbtn" type="button" id="zoomOut">−</button>
+      <span class="zoomVal" id="zoomVal">120%</span>
+      <button class="zbtn" type="button" id="zoomIn">+</button>
+      <button class="zbtn" type="button" id="zoomReset">Reset</button>
+    </div>
+  </div>
+
+  <div class="scaled">
+
+    <!-- FORM -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2>1) Pengajuan Klaim</h2>
+        <div class="mini">Isi 1 baris lalu Confirm</div>
+      </div>
+
+      <div class="formTopTools">
+        <button class="btn ts small" type="button" id="btnTS">TS (Tanggal Semalam)</button>
+        <div class="claimDateBox">
+          <span> Tanggal Klaim (Hari Main): </span>
+          <span class="claimDateVal" id="claimDateText">-</span>
+          <span id="tsHelp" class="mini"></span>
+        </div>
+      </div>
+
+      <form id="claimForm" autocomplete="off">
+        <div class="tableWrap">
+          <table>
+            <colgroup>
+              <col style="width:8%">
+              <col style="width:14%">
+              <col style="width:13%">
+              <col style="width:13%">
+              <col style="width:8%">
+              <col style="width:10%">
+              <col style="width:8%">
+              <col style="width:10%">
+              <col style="width:16%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>USER ID</th>
+                <th>NAMA REKENING</th>
+                <th>REKENING</th>
+                <th>PERIODE</th>
+                <th>JENIS</th>
+                <th class="num">TOTAL</th>
+                <th class="num">MODAL</th>
+                <th class="num">PECAHAN</th>
+                <th class="center">AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input id="userId" placeholder="123456"></td>
+                <td class="wrapText"><input id="namaRek" placeholder="Nama Rekening"></td>
+                <td class="wrapText"><input id="nomorRek" placeholder="Nomor Rekening"></td>
+                <td class="wrapText"><input id="periode" placeholder="01-14 Jan 2026 (unik)"></td>
+                <td>
+                  <select id="jenisSpin">
+                    <option value="BUY">BUY</option>
+                    <option value="FREE">FREE</option>
+                  </select>
+                </td>
+                <td><input id="totalKemenangan" inputmode="numeric" placeholder="1,547,200"></td>
+                <td><input id="modal" inputmode="numeric" placeholder="60,000"></td>
+                <td><input id="pecahan" inputmode="numeric" placeholder="24,000"></td>
+                <td class="center">
+                  <div class="aksiRow">
+                    <button class="btn secondary small" type="button" id="btnClear">Clear</button>
+                    <button class="btn primary small" type="submit">Confirm</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="msg" class="msg"></div>
+        <div class="hint">USER ID tidak bisa diedit. Jika USER ID salah → hapus pengajuan dan buat ulang.</div>
+      </form>
+    </div>
+
+    <!-- STATUS PENGAJUAN -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2>2) Status Pengajuan</h2>
+        <div class="mini" id="counterText"></div>
+      </div>
+
+      <div class="tools">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-filter="WAITING">WAITING</button>
+          <button class="tab" data-filter="APPROVED">APPROVED</button>
+          <button class="tab" data-filter="REJECTED">REJECTED</button>
+          <button class="tab" data-filter="ALL">ALL</button>
+        </div>
+
+        <div class="search">
+          <input id="search" placeholder="Cari: USER ID / Nama / Periode / Rekening...">
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn secondary small" type="button" id="btnExportExcel">Export Excel</button>
+          <button class="btn secondary small" type="button" id="btnWipe">Hapus Semua</button>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table id="listTable">
+          <colgroup>
+            <col style="width:9%">
+            <col style="width:10%">
+            <col style="width:7%">
+            <col style="width:14%">
+            <col style="width:14%">
+            <col style="width:12%">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:9%">
+            <col style="width:11%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>TANGGAL</th>
+              <th>STATUS</th>
+              <th>USER ID</th>
+              <th>NAMA REKENING</th>
+              <th>REKENING</th>
+              <th>PERIODE</th>
+              <th>JENIS</th>
+              <th class="num">TOTAL</th>
+              <th class="num">MODAL</th>
+              <th class="num">PECAHAN</th>
+              <th class="num">FINAL</th>
+              <th class="center">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="listBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty" style="display:none;">Tidak ada data pada filter ini.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Edit -->
+<div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modalHead">
+      <h3>Edit Pengajuan (USER ID dikunci)</h3>
+      <button class="btn secondary small" type="button" id="btnCloseModal">Tutup</button>
+    </div>
+
+    <div class="mini" id="modalMeta"></div>
+
+    <div class="modalGrid" style="margin-top:10px;">
+      <div class="fg">
+        <div class="lbl">USER ID (tidak bisa diubah)</div>
+        <input id="m_userId" disabled />
+      </div>
+      <div class="fg">
+        <div class="lbl">JENIS</div>
+        <select id="m_jenisSpin">
+          <option value="BUY">BUY</option>
+          <option value="FREE">FREE</option>
+        </select>
+      </div>
+
+      <div class="fg full">
+        <div class="lbl">TANGGAL KLAIM (Hari Main) - (admin bisa koreksi jika member lupa TS)</div>
+        <input id="m_claimDate" type="date" />
+      </div>
+
+      <div class="fg">
+        <div class="lbl">NAMA REKENING</div>
+        <input id="m_namaRek" />
+      </div>
+      <div class="fg">
+        <div class="lbl">REKENING</div>
+        <input id="m_nomorRek" />
+      </div>
+
+      <div class="fg full">
+        <div class="lbl">PERIODE (unik global, kecuali REJECTED)</div>
+        <input id="m_periode" />
+      </div>
+
+      <div class="fg">
+        <div class="lbl">TOTAL</div>
+        <input id="m_total" inputmode="numeric" />
+      </div>
+      <div class="fg">
+        <div class="lbl">MODAL (BUY saja)</div>
+        <input id="m_modal" inputmode="numeric" />
+      </div>
+      <div class="fg">
+        <div class="lbl">PECAHAN</div>
+        <input id="m_pecahan" inputmode="numeric" />
+      </div>
+      <div class="fg">
+        <div class="lbl">Status (opsional)</div>
+        <select id="m_status">
+          <option value="WAITING">WAITING</option>
+          <option value="APPROVED">APPROVED</option>
+          <option value="REJECTED">REJECTED</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <div class="mini" id="modalMsg" style="margin-right:auto;"></div>
+      <button class="btn secondary" type="button" id="btnCancelEdit">Cancel</button>
+      <button class="btn primary" type="button" id="btnSaveEdit">Save Edit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DAILY_MAX_CLAIM = 400000;
+  const STORAGE_KEY = "klaim_final_TS_v1";
+
+  const el = (id)=>document.getElementById(id);
+
+  function loadSubmissions(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }catch{ return []; }
+  }
+  function saveSubmissions(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+
+  function parseMoney(input){
+    if(input==null) return 0;
+    const s = String(input).trim().replace(/[.\s]/g,"").replace(/,/g,"");
+    if(s==="") return 0;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  function formatMoney(n){
+    if(!Number.isFinite(n)) return "-";
+    return Math.round(n).toLocaleString("en-US");
+  }
+  function nowStamp(){
+    return new Date().toLocaleString("id-ID",{hour12:false});
+  }
+  function makeId(){
+    return "KLAIM-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+  }
+  function dateKey(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  function addDaysKey(key, delta){
+    const [y,m,d] = key.split("-").map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() + delta);
+    return dateKey(dt);
+  }
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function calcRaw({jenisSpin,total,modal,pecahan}){
+    if(jenisSpin==="BUY") return (total - modal - pecahan) * 0.25;
+    return (total - pecahan) * 0.20;
+  }
+  function calcRawSafe(r){
+    const raw = calcRaw({
+      jenisSpin: r.jenisSpin,
+      total: Number(r.total)||0,
+      modal: Number(r.modal)||0,
+      pecahan: Number(r.pecahan)||0
+    });
+    return Number.isFinite(raw) ? raw : 0;
+  }
+
+  function setMsg(text,type){
+    const m = el("msg");
+    m.className = "msg " + (type==="ok" ? "ok" : "err");
+    m.textContent = text;
+  }
+  function clearMsg(){
+    const m = el("msg");
+    m.className = "msg";
+    m.textContent = "";
+  }
+
+  let submissions = loadSubmissions();
+  let activeFilter = "WAITING";
+  let activeSearch = "";
+
+  // ===== TS state (client-side) =====
+  let tsOn = false; // apakah tombol TS sedang aktif (untuk form)
+  function tsAllowedNow(){
+    const now = new Date();
+    const minutes = now.getHours()*60 + now.getMinutes();
+    // 00:01 (1) sampai 02:00 (120) inclusive
+    return minutes >= 1 && minutes <= 120;
+  }
+  function getSubmitDayKeyNow(){
+    return dateKey(new Date());
+  }
+  function getClaimDayKeyNow(){
+    const today = getSubmitDayKeyNow();
+    return tsOn ? addDaysKey(today, -1) : today;
+  }
+  function refreshTSUI(){
+    const allowed = tsAllowedNow();
+    const btn = el("btnTS");
+    btn.disabled = !allowed;
+    btn.classList.toggle("on", tsOn && allowed);
+
+    const claimKey = getClaimDayKeyNow();
+    el("claimDateText").textContent = claimKey + (tsOn ? " (TS)" : "");
+
+    if(!allowed){
+      tsOn = false;
+      btn.classList.remove("on");
+      el("tsHelp").textContent = "TS nonaktif (hanya 00:01–02:00).";
+    }else{
+      el("tsHelp").textContent = "Jika klaim untuk hari sebelumnya, aktifkan TS.";
+    }
+  }
+
+  // ======= PERIODE UNIK GLOBAL untuk status != REJECTED =======
+  function normalizePeriode(p){
+    return String(p ?? "").trim().toLowerCase().replace(/\s+/g,' ');
+  }
+  function periodeExistsGlobalActive(periode, excludeId=null){
+    const key = normalizePeriode(periode);
+    if(!key) return false;
+    return submissions.some(x =>
+      normalizePeriode(x.periode) === key &&
+      x.status !== "REJECTED" &&
+      (excludeId ? x.id !== excludeId : true)
+    );
+  }
+
+  // ===== Rules (harian pakai claimDayKey) =====
+  function recalcUserDay(userId, claimDayKey){
+    const indices = submissions
+      .map((x, idx)=>({x, idx}))
+      .filter(o => o.x.userId === userId && o.x.claimDayKey === claimDayKey)
+      .sort((a,b)=>(a.x.submitEpoch ?? 0) - (b.x.submitEpoch ?? 0));
+
+    let used = 0;
+    for(const o of indices){
+      const r = o.x;
+
+      if(r.status === "REJECTED"){
+        r.rawHasil = calcRawSafe(r);
+        r.cappedBySpin = Math.min(Math.max(0, r.rawHasil), DAILY_MAX_CLAIM);
+        r.remainingBefore = Math.max(0, DAILY_MAX_CLAIM - used);
+        r.finalHasil = 0;
+        continue;
+      }
+
+      r.rawHasil = calcRawSafe(r);
+      r.cappedBySpin = Math.min(Math.max(0, r.rawHasil), DAILY_MAX_CLAIM);
+
+      const remaining = Math.max(0, DAILY_MAX_CLAIM - used);
+      r.remainingBefore = remaining;
+
+      const final = Math.min(r.cappedBySpin, remaining);
+      r.finalHasil = Math.max(0, final);
+
+      used += r.finalHasil;
+    }
+  }
+
+  function violatesOncePerSpin(userId, claimDayKey, jenisSpin, excludeId=null){
+    return submissions.some(x =>
+      x.userId === userId &&
+      x.claimDayKey === claimDayKey &&
+      x.jenisSpin === jenisSpin &&
+      x.status !== "REJECTED" &&
+      (excludeId ? x.id !== excludeId : true)
+    );
+  }
+
+  function toggleModalRequirement(){
+    const jenis = el("jenisSpin").value;
+    const modal = el("modal");
+    if(jenis==="FREE"){
+      modal.value = "";
+      modal.disabled = true;
+      modal.placeholder = "Tidak dipakai";
+    }else{
+      modal.disabled = false;
+      modal.placeholder = "60,000";
+    }
+  }
+  function toggleModalRequirementEdit(){
+    const jenis = el("m_jenisSpin").value;
+    const modal = el("m_modal");
+    if(jenis==="FREE"){
+      modal.value = "";
+      modal.disabled = true;
+      modal.placeholder = "Tidak dipakai";
+    }else{
+      modal.disabled = false;
+      modal.placeholder = "60,000";
+    }
+  }
+
+  function badge(status){
+    if(status==="APPROVED") return `<span class="badge approved">APPROVED</span>`;
+    if(status==="REJECTED") return `<span class="badge rejected">REJECTED</span>`;
+    return `<span class="badge waiting">WAITING</span>`;
+  }
+
+  function applyFilters(data){
+    let out = data;
+
+    if(activeFilter !== "ALL"){
+      out = out.filter(x => x.status === activeFilter);
+    }
+    if(activeSearch.trim() !== ""){
+      const q = activeSearch.trim().toLowerCase();
+      out = out.filter(x => {
+        const hay = [
+          x.userId, x.namaRek, x.periode, x.nomorRek,
+          x.claimDayKey, x.submitDayKey, x.jenisSpin
+        ].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    out = out.slice().sort((a,b)=> (b.submitEpoch ?? 0) - (a.submitEpoch ?? 0));
+    return out;
+  }
+
+  function updateCounter(){
+    const total = submissions.length;
+    const waiting = submissions.filter(x=>x.status==="WAITING").length;
+    const approved = submissions.filter(x=>x.status==="APPROVED").length;
+    const rejected = submissions.filter(x=>x.status==="REJECTED").length;
+    el("counterText").textContent =
+      `Total: ${total} • Waiting: ${waiting} • Approved: ${approved} • Rejected: ${rejected}`;
+  }
+
+  function persistAndRender(){
+    saveSubmissions(submissions);
+    renderList();
+  }
+
+  function renderList(){
+    updateCounter();
+    const body = el("listBody");
+    const empty = el("emptyState");
+
+    body.innerHTML = "";
+    const filtered = applyFilters(submissions);
+
+    if(filtered.length === 0){
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    filtered.forEach(x=>{
+      const jenisText = x.jenisSpin==="BUY" ? "BUY" : "FREE";
+      const tsBadge = x.isTS ? `<span class="badge ts">TS</span>` : "";
+
+      const aksiHtml = `
+        <div class="aksiRow">
+          <button class="btn approve small" data-approve="${escapeHtml(x.id)}">Approve</button>
+          <button class="btn reject small" data-reject="${escapeHtml(x.id)}">Reject</button>
+          <button class="btn secondary small" data-edit="${escapeHtml(x.id)}">Edit</button>
+          <button class="btn danger small" data-delete="${escapeHtml(x.id)}">Hapus</button>
+        </div>`;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(x.claimDayKey)}${tsBadge}</td>
+        <td>${badge(x.status)}</td>
+        <td><b>${escapeHtml(x.userId)}</b></td>
+        <td class="wrapText">${escapeHtml(x.namaRek)}</td>
+        <td class="wrapText">${escapeHtml(x.nomorRek)}</td>
+        <td class="wrapText">${escapeHtml(x.periode)}</td>
+        <td class="center"><b>${jenisText}</b></td>
+        <td class="num">${formatMoney(x.total)}</td>
+        <td class="num">${x.jenisSpin==="BUY" ? formatMoney(x.modal) : "-"}</td>
+        <td class="num">${formatMoney(x.pecahan)}</td>
+        <td class="num"><b>${formatMoney(x.finalHasil)}</b></td>
+        <td class="center">${aksiHtml}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  // ======= PATCH APPROVE: cegah double aktif periode sama =======
+  function setStatusById(id, status){
+    const idx = submissions.findIndex(x=>x.id===id);
+    if(idx===-1) return;
+
+    const rec = submissions[idx];
+
+    if(status === "APPROVED"){
+      if(periodeExistsGlobalActive(rec.periode, rec.id)){
+        alert("Tidak bisa APPROVE: PERIODE ini sudah dipakai oleh klaim aktif lain (WAITING/APPROVED).");
+        return;
+      }
+    }
+
+    rec.status = status;
+    rec.checkedAt = nowStamp();
+
+    recalcUserDay(rec.userId, rec.claimDayKey);
+    persistAndRender();
+  }
+
+  function deleteById(id){
+    const idx = submissions.findIndex(x=>x.id===id);
+    if(idx===-1) return;
+
+    const u = submissions[idx].userId;
+    const cdk = submissions[idx].claimDayKey;
+
+    if(!confirm("Yakin hapus pengajuan ini?")) return;
+
+    submissions.splice(idx, 1);
+
+    recalcUserDay(u, cdk);
+    persistAndRender();
+  }
+
+  // ===== Modal Edit =====
+  let editingId = null;
+
+  function openEditModal(id){
+    const rec = submissions.find(x=>x.id===id);
+    if(!rec) return;
+
+    editingId = id;
+    el("modalMsg").textContent = "";
+    el("modalMeta").textContent =
+      `Submit: ${rec.submitDayKey} (${rec.submitAt}) • Hari Main: ${rec.claimDayKey}${rec.isTS ? " (TS)" : ""} • ID: ${rec.id}`;
+
+    el("m_userId").value = rec.userId;
+    el("m_jenisSpin").value = rec.jenisSpin;
+    el("m_claimDate").value = rec.claimDayKey; // yyyy-mm-dd
+    el("m_namaRek").value = rec.namaRek;
+    el("m_nomorRek").value = rec.nomorRek;
+    el("m_periode").value = rec.periode;
+    el("m_total").value = String(rec.total ?? "");
+    el("m_modal").value = String(rec.modal ?? "");
+    el("m_pecahan").value = String(rec.pecahan ?? "");
+    el("m_status").value = rec.status;
+
+    toggleModalRequirementEdit();
+    el("modalOverlay").style.display = "flex";
+  }
+
+  function closeEditModal(){
+    editingId = null;
+    el("modalOverlay").style.display = "none";
+  }
+
+  function modalError(msg){
+    el("modalMsg").textContent = msg;
+    el("modalMsg").style.color = "var(--danger)";
+  }
+
+  function saveEdit(){
+    if(!editingId) return;
+    const idx = submissions.findIndex(x=>x.id===editingId);
+    if(idx===-1) return;
+
+    const rec = submissions[idx];
+
+    const newUserId = String(el("m_userId").value).trim();
+    if(newUserId !== rec.userId){
+      modalError("USER ID tidak boleh diubah. Jika salah USER ID: Hapus lalu submit baru.");
+      el("m_userId").value = rec.userId;
+      return;
+    }
+
+    const oldClaimDayKey = rec.claimDayKey;
+
+    const newJenis = el("m_jenisSpin").value;
+    const newClaimDayKey = (el("m_claimDate").value || "").trim(); // yyyy-mm-dd
+    const newNama = el("m_namaRek").value.trim();
+    const newRek = el("m_nomorRek").value.trim();
+    const newPeriode = el("m_periode").value.trim();
+
+    const newTotal = parseMoney(el("m_total").value);
+    const newModal = parseMoney(el("m_modal").value);
+    const newPecahan = parseMoney(el("m_pecahan").value);
+    const newStatus = el("m_status").value;
+
+    if(!newClaimDayKey){
+      modalError("Tanggal klaim (hari main) wajib diisi.");
+      return;
+    }
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(newClaimDayKey)){
+      modalError("Format tanggal klaim tidak valid. Gunakan date picker.");
+      return;
+    }
+    if(!newNama || !newRek || !newPeriode){
+      modalError("Nama rekening, rekening, dan periode wajib diisi.");
+      return;
+    }
+
+    if(newStatus !== "REJECTED" && periodeExistsGlobalActive(newPeriode, rec.id)){
+      modalError("Tidak bisa: PERIODE sudah dipakai oleh klaim lain yang masih aktif (WAITING/APPROVED).");
+      return;
+    }
+
+    if(!Number.isFinite(newTotal) || newTotal <= 0){
+      modalError("TOTAL harus angka dan > 0.");
+      return;
+    }
+    if(!Number.isFinite(newPecahan) || newPecahan < 0){
+      modalError("PECAHAN harus angka (boleh 0).");
+      return;
+    }
+    if(newJenis === "BUY"){
+      if(!Number.isFinite(newModal) || newModal <= 0){
+        modalError("Karena BUY, MODAL wajib angka dan > 0.");
+        return;
+      }
+    }
+
+    // rule 1x per jenis per hari (pakai claimDayKey)
+    if(newStatus !== "REJECTED"){
+      if(violatesOncePerSpin(rec.userId, newClaimDayKey, newJenis, rec.id)){
+        modalError("Tidak bisa: USER ID ini sudah punya klaim jenis spin yang sama pada tanggal klaim tersebut.");
+        return;
+      }
+    }
+
+    // apply
+    rec.jenisSpin = newJenis;
+    rec.claimDayKey = newClaimDayKey;
+    rec.isTS = (rec.claimDayKey !== rec.submitDayKey); // TS jika hari main beda dari hari submit
+    rec.namaRek = newNama;
+    rec.nomorRek = newRek;
+    rec.periode = newPeriode;
+    rec.total = newTotal;
+    rec.modal = (newJenis === "BUY") ? newModal : 0;
+    rec.pecahan = newPecahan;
+    rec.status = newStatus;
+    rec.checkedAt = nowStamp();
+
+    // recalc kuota hari lama & hari baru (kalau berubah)
+    recalcUserDay(rec.userId, oldClaimDayKey);
+    if(newClaimDayKey !== oldClaimDayKey){
+      recalcUserDay(rec.userId, newClaimDayKey);
+    }
+
+    persistAndRender();
+    closeEditModal();
+  }
+
+  // ===== Export Excel =====
+  function exportExcel(){
+    if(typeof XLSX === "undefined"){
+      alert("Library Excel belum termuat. Pastikan internet aktif lalu refresh halaman.");
+      return;
+    }
+    const rows = submissions
+      .slice()
+      .sort((a,b)=>(a.submitEpoch??0)-(b.submitEpoch??0))
+      .map(x => ({
+        "TANGGAL_KLAIM": x.claimDayKey,
+        "TS": x.isTS ? "YES" : "NO",
+        "TANGGAL_SUBMIT": x.submitDayKey,
+        "WAKTU_SUBMIT": x.submitAt,
+        STATUS: x.status,
+        "USER ID": x.userId,
+        "NAMA REKENING": x.namaRek,
+        REKENING: x.nomorRek,
+        PERIODE: x.periode,
+        JENIS: x.jenisSpin,
+        TOTAL: Number(x.total)||0,
+        MODAL: x.jenisSpin==="BUY" ? (Number(x.modal)||0) : 0,
+        PECAHAN: Number(x.pecahan)||0,
+        FINAL: Number(x.finalHasil)||0
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Klaim");
+
+    const now = new Date();
+    const name = `klaim_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}.xlsx`;
+    XLSX.writeFile(wb, name);
+  }
+
+  // ===== Submit =====
+  el("claimForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    clearMsg();
+
+    const submitEpoch = Date.now();
+    const submitAt = nowStamp();
+    const submitDayKey = dateKey(new Date());
+
+    // claimDayKey dipilih via TS toggle
+    refreshTSUI(); // memastikan TS benar (kalau di luar jam, auto off)
+    const claimDayKey = getClaimDayKeyNow();
+    const isTS = (claimDayKey !== submitDayKey);
+
+    const data = {
+      id: makeId(),
+      userId: el("userId").value.trim(),
+      namaRek: el("namaRek").value.trim(),
+      nomorRek: el("nomorRek").value.trim(),
+      periode: el("periode").value.trim(),
+      jenisSpin: el("jenisSpin").value,
+      total: parseMoney(el("totalKemenangan").value),
+      modal: parseMoney(el("modal").value),
+      pecahan: parseMoney(el("pecahan").value),
+
+      // submit info
+      submitAt,
+      submitEpoch,
+      submitDayKey,
+
+      // claim date used for rules
+      claimDayKey,
+      isTS,
+
+      checkedAt: "",
+      status: "WAITING",
+
+      rawHasil: 0,
+      cappedBySpin: 0,
+      remainingBefore: 0,
+      finalHasil: 0
+    };
+
+    if(!data.userId || !data.namaRek || !data.nomorRek || !data.periode){
+      setMsg("Mohon lengkapi USER ID, NAMA REKENING, NOMOR REKENING, dan PERIODE.","err");
+      return;
+    }
+
+    // PERIODE unik global untuk klaim aktif (WAITING/APPROVED)
+    if(periodeExistsGlobalActive(data.periode, null)){
+      setMsg("Tidak bisa: PERIODE sudah dipakai oleh klaim lain yang masih aktif (WAITING/APPROVED).","err");
+      return;
+    }
+
+    if(!Number.isFinite(data.total) || data.total<=0){
+      setMsg("TOTAL harus angka dan > 0.","err");
+      return;
+    }
+    if(!Number.isFinite(data.pecahan) || data.pecahan<0){
+      setMsg("PECAHAN harus angka (boleh 0).","err");
+      return;
+    }
+    if(data.jenisSpin==="BUY"){
+      if(!Number.isFinite(data.modal) || data.modal<=0){
+        setMsg("Karena BUY, MODAL wajib angka dan > 0.","err");
+        return;
+      }
+    }else{
+      data.modal = 0;
+    }
+
+    // rule 1x per jenis per tanggal klaim (hari main)
+    if(violatesOncePerSpin(data.userId, data.claimDayKey, data.jenisSpin, null)){
+      setMsg(`Ditolak: USER ID ini sudah klaim ${data.jenisSpin} pada tanggal klaim ${data.claimDayKey}.`, "err");
+      return;
+    }
+
+    submissions.push(data);
+    recalcUserDay(data.userId, data.claimDayKey);
+
+    persistAndRender();
+
+    activeFilter = "WAITING";
+    [...el("tabs").querySelectorAll(".tab")].forEach(x=>x.classList.remove("active"));
+    el("tabs").querySelector('[data-filter="WAITING"]').classList.add("active");
+
+    const saved = submissions.find(x=>x.id===data.id);
+    setMsg(
+      `Pengajuan masuk WAITING. Tanggal klaim: ${data.claimDayKey}${data.isTS ? " (TS)" : ""}. Final: ${formatMoney(saved?.finalHasil ?? 0)} (max harian 400,000).`,
+      "ok"
+    );
+  });
+
+  // ===== Events =====
+  el("jenisSpin").addEventListener("change", toggleModalRequirement);
+  el("m_jenisSpin").addEventListener("change", toggleModalRequirementEdit);
+
+  el("btnTS").addEventListener("click", ()=>{
+    if(!tsAllowedNow()){
+      alert("TS hanya bisa dipakai pada jam 00:01 – 02:00.");
+      tsOn = false;
+      refreshTSUI();
+      return;
+    }
+    tsOn = !tsOn;
+    refreshTSUI();
+  });
+
+  el("btnClear").addEventListener("click", ()=>{
+    el("claimForm").reset();
+    tsOn = false;
+    toggleModalRequirement();
+    clearMsg();
+    refreshTSUI();
+  });
+
+  el("tabs").addEventListener("click",(e)=>{
+    const b = e.target.closest("[data-filter]");
+    if(!b) return;
+    activeFilter = b.getAttribute("data-filter");
+    [...el("tabs").querySelectorAll(".tab")].forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    renderList();
+  });
+
+  el("search").addEventListener("input",(e)=>{
+    activeSearch = e.target.value;
+    renderList();
+  });
+
+  el("listBody").addEventListener("click",(e)=>{
+    const ap = e.target.closest("[data-approve]");
+    const rj = e.target.closest("[data-reject]");
+    const ed = e.target.closest("[data-edit]");
+    const dl = e.target.closest("[data-delete]");
+
+    if(ap) setStatusById(ap.getAttribute("data-approve"), "APPROVED");
+    if(rj) setStatusById(rj.getAttribute("data-reject"), "REJECTED");
+    if(ed) openEditModal(ed.getAttribute("data-edit"));
+    if(dl) deleteById(dl.getAttribute("data-delete"));
+  });
+
+  el("btnWipe").addEventListener("click", ()=>{
+    if(!confirm("Yakin hapus semua data pengajuan?")) return;
+    submissions = [];
+    persistAndRender();
+  });
+
+  el("btnExportExcel").addEventListener("click", exportExcel);
+
+  // Modal
+  el("btnCloseModal").addEventListener("click", closeEditModal);
+  el("btnCancelEdit").addEventListener("click", closeEditModal);
+  el("modalOverlay").addEventListener("click", (e)=>{
+    if(e.target === el("modalOverlay")) closeEditModal();
+  });
+  el("btnSaveEdit").addEventListener("click", saveEdit);
+
+  // Zoom
+  function getScale(){
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--ui-scale").trim();
+    return Number(v) || 1.2;
+  }
+  function setScale(n){
+    const clamped = Math.max(1.0, Math.min(1.5, Math.round(n * 100) / 100));
+    document.documentElement.style.setProperty("--ui-scale", clamped);
+    el("zoomVal").textContent = Math.round(clamped * 100) + "%";
+    localStorage.setItem("ui_scale_pref", String(clamped));
+  }
+  el("zoomIn").addEventListener("click", ()=> setScale(getScale() + 0.05));
+  el("zoomOut").addEventListener("click", ()=> setScale(getScale() - 0.05));
+  el("zoomReset").addEventListener("click", ()=> setScale(1.20));
+
+  // Init
+  const savedScale = Number(localStorage.getItem("ui_scale_pref"));
+  if(savedScale && savedScale >= 1.0 && savedScale <= 1.5) setScale(savedScale);
+  else setScale(1.20);
+
+  toggleModalRequirement();
+  toggleModalRequirementEdit();
+
+  // Recalc all existing entries (safe)
+  (function recalcAll(){
+    const keys = new Set(submissions.map(x => `${x.userId}__${x.claimDayKey}`));
+    for(const k of keys){
+      const [u, d] = k.split("__");
+      recalcUserDay(u, d);
+    }
+    persistAndRender();
+  })();
+
+  // refresh TS UI now + every 20s (auto disable after 02:00)
+  refreshTSUI();
+  setInterval(refreshTSUI, 20000);
+</script>
+</body>
+</html>
